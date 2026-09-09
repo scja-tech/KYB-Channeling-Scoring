@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KYB Partner Scoring — Pegadaian</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Styling -->
+<link rel="stylesheet" href="css/style.css">
+
+<!-- Firebase (Firestore) — untuk penyimpanan riwayat bersama tim -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- jsPDF + AutoTable — untuk ekspor laporan PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>KYB Partner Scoring</h1>
+      <p>Alat evaluasi kelayakan komersial partner untuk mengakselerasi ekspansi ekosistem emas dan skalabilitas bisnis API Pegadaian.</p>
+    </div>
+    <div class="brand">
+      <img class="brand-logo" src="assets/logo-pegadaian.png" alt="Pegadaian">
+      <button class="dashboard-btn" id="openDashboardBtn" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H3V3"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        Dashboard Ringkasan
+      </button>
+      <span class="tag">Internal only · tidak dibagikan ke partner</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <div class="form-col">
+
+      <div class="card partner-card">
+        <p class="section-label">Data Partner</p>
+        <div class="row">
+          <div class="field">
+            <label for="partnerName">Nama Partner / Perusahaan</label>
+            <input type="text" id="partnerName" placeholder="Contoh: PT Bank Digital Nusantara">
+          </div>
+          <div class="field">
+            <label for="partnerType">Jenis Channel</label>
+            <input type="text" id="partnerType" placeholder="Bank / Fintech / E-Commerce / Merchant">
+          </div>
+          <div class="field">
+            <label for="assessDate">Tanggal Penilaian</label>
+            <input type="date" id="assessDate">
+          </div>
+        </div>
+      </div>
+
+      <div id="pillars"></div>
+
+    </div>
+
+    <div class="score-col">
+      <div class="card score-panel">
+        <h3>Total skor</h3>
+        <div class="score-big" id="scoreTotal">0</div>
+        <div class="score-max" id="scoreMax">dari maksimum 321.5</div>
+        <div id="resultBlock">
+          <div id="scoreBadge"></div>
+          <div class="fee-note" id="feeNote"></div>
+          <div id="tierScheduleBlock"></div>
+        </div>
+        <div id="emptyResultState" style="display:none;">
+          <div class="empty-badge-ring">
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+              <circle cx="13" cy="13" r="10.5" stroke="var(--brand-green)" stroke-width="2" stroke-dasharray="4 4"/>
+            </svg>
+          </div>
+          <div class="empty-state-title">Belum ada kriteria terisi</div>
+          <div class="empty-state-desc">Pilih minimal satu kriteria penilaian di sebelah kiri — kategori dan rekomendasi fee akan muncul otomatis di sini.</div>
+        </div>
+
+        <div id="breakdown"></div>
+
+        <button class="primary" id="saveBtn">Simpan penilaian</button>
+        <button class="ghost" id="exportBtn">Unduh laporan (PDF)</button>
+        <button class="ghost" id="resetBtn">Formulir baru</button>
+        <div class="save-msg" id="saveMsg"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card history">
+    <div class="history-head">
+      <h2>Riwayat penilaian partner</h2>
+      <input type="text" id="searchHistory" placeholder="Cari nama partner…">
+    </div>
+    <div id="historyBody">
+      <div class="empty-state">Memuat riwayat…</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="dash-overlay" id="dashboardOverlay">
+  <div class="dash-panel">
+    <div class="dash-panel-head">
+      <div>
+        <div class="dash-panel-title">Dashboard Ringkasan Penilaian</div>
+        <div class="dash-panel-sub">Agregat dari seluruh riwayat penilaian KYB partner</div>
+      </div>
+      <button class="dash-close-btn" id="closeDashboardBtn" type="button" aria-label="Tutup dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="dash-panel-body" id="dashboardBody">
+      <div class="empty-state">Memuat data…</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Data statis (variabel, bobot, skema tiering, config Firebase) -->
+<script src="js/data.js"></script>
+<!-- Logika utama aplikasi -->
+<script src="js/script.js"></script>
+</body>
+</html>
