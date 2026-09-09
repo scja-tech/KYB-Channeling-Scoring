@@ -5,12 +5,12 @@
 // ====== GANTI DENGAN CONFIG FIREBASE ANDA SENDIRI ======
 // Ambil dari Firebase Console -> Project Settings -> General -> Your apps -> SDK setup and configuration
 const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
+  apiKey: "AIzaSyBNjQ_KcJeqD7ZJcKAiBHHdf8i-ajuu72M",
+  authDomain: "kyb-channeling-scoring.firebaseapp.com",
+  projectId: "kyb-channeling-scoring",
+  storageBucket: "kyb-channeling-scoring.firebasestorage.app",
+  messagingSenderId: "733496602242",
+  appId: "1:733496602242:web:e5fd1a2673e70ec32a4e9b",
 };
 // ==========================================================
 
