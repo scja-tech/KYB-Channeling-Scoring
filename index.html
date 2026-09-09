@@ -15,6 +15,7 @@
 <!-- Firebase (Firestore) — untuk penyimpanan riwayat bersama tim -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <!-- jsPDF + AutoTable — untuk ekspor laporan PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -22,7 +23,32 @@
 </head>
 <body>
 
-<div class="wrap">
+<div class="login-screen" id="loginScreen">
+  <div class="login-topbar">
+    <img class="login-logo" src="assets/logo-pegadaian.png" alt="Pegadaian">
+  </div>
+  <div class="login-center">
+    <div class="login-card">
+      <h1>KYB Partner Scoring</h1>
+      <p class="login-sub">Masuk dengan akun internal Anda untuk melanjutkan.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="nama@pegadaian.co.id" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" class="primary" id="loginSubmitBtn">Masuk</button>
+      </form>
+      <p class="login-note">Belum punya akun? Hubungi admin tools untuk dibuatkan akses.</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appRoot" style="display:none;">
 
   <header class="top">
     <div>
@@ -35,6 +61,10 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H3V3"/><path d="M7 14l4-4 3 3 5-6"/></svg>
         Dashboard Ringkasan
       </button>
+      <div class="user-row">
+        <span class="user-email" id="userEmailLabel"></span>
+        <button class="logout-btn" id="logoutBtn" type="button">Keluar</button>
+      </div>
       <span class="tag">Internal only · tidak dibagikan ke partner</span>
     </div>
   </header>
