@@ -166,13 +166,25 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 // ---------- db persistence ----------
 let dbRef = null;
 let assessments = [];
+let currentUser = null;
+
+function firebaseReady() {
+  return !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey);
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = '';
+}
+function showLogin(message) {
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('loginScreen').style.display = '';
+  const errEl = document.getElementById('loginError');
+  if (errEl) errEl.textContent = message || '';
+}
 
 function initDb() {
-  if (!FIREBASE_CONFIG.apiKey) {
-    document.getElementById('historyBody').innerHTML = '<div class="empty-state">Konfigurasi Firebase belum diisi di data.js — riwayat tidak dapat disimpan/dimuat. Lihat komentar di bagian atas data.js.</div>';
-    return;
-  }
-  firebase.initializeApp(FIREBASE_CONFIG);
+  if (dbRef) return; // sudah pernah diinisialisasi, jangan dobel listener
   const db = firebase.firestore();
   dbRef = db.collection('assessments');
   dbRef.orderBy('createdAt', 'desc').limit(200).onSnapshot(
@@ -186,7 +198,47 @@ function initDb() {
     }
   );
 }
-initDb();
+
+function initAuth() {
+  if (!firebaseReady()) {
+    showLogin('Konfigurasi Firebase belum diisi di data.js — hubungi admin tools.');
+    document.getElementById('loginForm').querySelector('button').disabled = true;
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+
+  firebase.auth().onAuthStateChanged(user => {
+    currentUser = user;
+    if (user) {
+      showApp();
+      const label = document.getElementById('userEmailLabel');
+      if (label) label.textContent = user.email;
+      initDb();
+    } else {
+      showLogin();
+    }
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginSubmitBtn');
+    btn.disabled = true;
+    firebase.auth().signInWithEmailAndPassword(email, password)
+      .catch(err => {
+        let msg = 'Gagal login. Periksa email dan password Anda.';
+        if (err.code === 'auth/too-many-requests') msg = 'Terlalu banyak percobaan gagal. Coba lagi beberapa saat.';
+        showLogin(msg);
+      })
+      .finally(() => { btn.disabled = false; });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    firebase.auth().signOut();
+  });
+}
+initAuth();
 
 function renderHistory() {
   const q = (document.getElementById('searchHistory').value || '').toLowerCase();
