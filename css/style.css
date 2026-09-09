@@ -95,6 +95,75 @@
     .brand-logo { height: 30px; }
   }
 
+  /* ---------- Login screen ---------- */
+  .login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+  .login-topbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 28px 36px 0;
+  }
+  .login-logo { height: 34px; width: auto; }
+  .login-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 28px rgba(4, 79, 69, 0.09);
+    padding: 40px 34px;
+    text-align: center;
+  }
+  .login-card h1 { font-family: 'Poppins', sans-serif; font-size: 26px; font-weight: 700; color: var(--brand-dark); margin: 0 0 8px; }
+  .login-sub { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 26px; }
+  .login-card form { text-align: left; }
+  .login-card .field { margin-bottom: 15px; display: flex; flex-direction: column; gap: 6px; }
+  .login-card .field label { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+  .login-card input {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14.5px;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-ctrl);
+    background: var(--panel-sunken);
+    color: var(--ink);
+    width: 100%;
+  }
+  .login-card input:focus { outline: 2px solid var(--brand-green); outline-offset: 1px; }
+  .login-error { min-height: 18px; font-size: 12.5px; font-weight: 600; color: var(--bad); margin-bottom: 8px; text-align: left; }
+  .login-card button.primary { margin-top: 6px; }
+  .login-note { font-size: 12px; color: var(--ink-soft); margin: 20px 0 0; }
+  @media (max-width: 480px) {
+    .login-topbar { padding: 20px 22px 0; }
+    .login-card { padding: 32px 24px; }
+  }
+
+  .user-row { display: flex; align-items: center; gap: 10px; }
+  .user-email { font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
+  .logout-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--brand-dark);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+  }
+  .logout-btn:hover { background: var(--panel-sunken); border-color: var(--bad); color: var(--bad); }
+
   .dashboard-btn {
     display: inline-flex;
     align-items: center;
