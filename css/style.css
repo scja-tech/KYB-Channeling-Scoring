@@ -107,7 +107,7 @@
     justify-content: flex-end;
     padding: 28px 36px 0;
   }
-  .login-logo { height: 34px; width: auto; }
+  .login-logo { height: 54px; width: auto; }
   .login-center {
     flex: 1;
     display: flex;
