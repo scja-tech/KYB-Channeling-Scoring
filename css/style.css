@@ -13,34 +13,8 @@
     --radius-card: 14px;
     --radius-ctrl: 9px;
   }
-  :root:not([data-theme="light"]) {
-    @media (prefers-color-scheme: dark) {
-      --bg: #0E1613;
-      --panel: #16211C;
-      --panel-sunken: #1C2A23;
-      --ink: #E7EFE9;
-      --ink-soft: #9BAFA4;
-      --border: #2B3B33;
-      --brand-green: #29C46A;
-      --brand-lime: #D3E45B;
-      --brand-dark: #4EA08F;
-      --bad: #E08277;
-      --shadow: 0 1px 2px rgba(0,0,0,0.35);
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #0E1613;
-    --panel: #16211C;
-    --panel-sunken: #1C2A23;
-    --ink: #E7EFE9;
-    --ink-soft: #9BAFA4;
-    --border: #2B3B33;
-    --brand-green: #29C46A;
-    --brand-lime: #D3E45B;
-    --brand-dark: #4EA08F;
-    --bad: #E08277;
-    --shadow: 0 1px 2px rgba(0,0,0,0.35);
-  }
+  /* Dark mode otomatis (prefers-color-scheme) sengaja dinonaktifkan —
+     situs ini selalu tampil terang, tidak mengikuti pengaturan sistem. */
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
