@@ -155,6 +155,9 @@ renderScore();
 
 // ---------- reset ----------
 document.getElementById('resetBtn').addEventListener('click', () => {
+  if (reviewingId) { exitReviewMode(); return; }
+  revisingId = null;
+  document.getElementById('saveBtn').textContent = 'Ajukan untuk Direview';
   document.getElementById('partnerName').value = '';
   document.getElementById('partnerType').value = '';
   document.getElementById('assessDate').valueAsDate = new Date();
@@ -165,8 +168,12 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 
 // ---------- db persistence ----------
 let dbRef = null;
+let usersRef = null;
 let assessments = [];
 let currentUser = null;
+let currentUserRole = null;
+let revisingId = null;
+let reviewingId = null;
 
 function firebaseReady() {
   return !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey);
@@ -187,10 +194,12 @@ function initDb() {
   if (dbRef) return; // sudah pernah diinisialisasi, jangan dobel listener
   const db = firebase.firestore();
   dbRef = db.collection('assessments');
+  usersRef = db.collection('users');
   dbRef.orderBy('createdAt', 'desc').limit(200).onSnapshot(
     snap => {
       assessments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderHistory();
+      renderQueues();
       if (document.getElementById('dashboardOverlay').classList.contains('open')) renderDashboardContent();
     },
     err => {
@@ -207,14 +216,33 @@ function initAuth() {
   }
   if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 
-  firebase.auth().onAuthStateChanged(user => {
+  firebase.auth().onAuthStateChanged(async user => {
     currentUser = user;
     if (user) {
+      let roleSnap;
+      try {
+        roleSnap = await firebase.firestore().collection('users').doc(user.uid).get();
+      } catch (e) {
+        showLogin('Gagal memeriksa peran akun Anda. Coba lagi.');
+        firebase.auth().signOut();
+        return;
+      }
+      const role = roleSnap.exists ? roleSnap.data().role : null;
+      if (!role || !ROLE_META[role]) {
+        showLogin('Akun Anda belum diberikan peran (Maker/Checker/Approver) oleh admin. Hubungi admin tools.');
+        firebase.auth().signOut();
+        return;
+      }
+      currentUserRole = role;
       showApp();
       const label = document.getElementById('userEmailLabel');
       if (label) label.textContent = user.email;
+      const roleLabel = document.getElementById('userRoleLabel');
+      if (roleLabel) roleLabel.textContent = ROLE_META[role].label;
+      applyRoleUI();
       initDb();
     } else {
+      currentUserRole = null;
       showLogin();
     }
   });
@@ -240,6 +268,177 @@ function initAuth() {
 }
 initAuth();
 
+// ---------- role-based UI (maker vs checker/approver) ----------
+function applyRoleUI() {
+  const isMaker = currentUserRole === 'maker';
+  document.getElementById('formColInputs').style.display = isMaker ? '' : 'none';
+  document.getElementById('queueList').style.display = isMaker ? 'none' : '';
+  if (!isMaker) document.getElementById('makerRevisionBanner').style.display = 'none';
+  renderQueues();
+}
+
+function renderQueues() {
+  if (!currentUserRole) return;
+
+  if (currentUserRole === 'maker') {
+    const mine = assessments.filter(a => a.status === 'revision' && currentUser && a.makerUid === currentUser.uid);
+    const banner = document.getElementById('makerRevisionBanner');
+    if (mine.length === 0) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+    banner.style.display = '';
+    banner.innerHTML = `
+      <div class="card queue-card">
+        <p class="section-label">Perlu Direvisi (${mine.length})</p>
+        ${mine.map(a => `
+          <div class="queue-item">
+            <div>
+              <div class="queue-item-name">${escapeHtml(a.partnerName || '(tanpa nama)')}</div>
+              <div class="queue-item-note">Catatan: ${escapeHtml(a.revisionNote || '-')}</div>
+            </div>
+            <button data-revid="${a.id}" class="ghost">Revisi</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    banner.querySelectorAll('button[data-revid]').forEach(btn => {
+      btn.addEventListener('click', () => startRevision(btn.dataset.revid));
+    });
+    return;
+  }
+
+  const statusWanted = currentUserRole === 'checker' ? 'pending_check' : 'pending_approval';
+  const title = currentUserRole === 'checker' ? 'Antrean Review — Checker' : 'Antrean Review — Approver';
+  const queue = assessments.filter(a => a.status === statusWanted);
+  const list = document.getElementById('queueList');
+  if (queue.length === 0) {
+    list.innerHTML = `<div class="card"><p class="section-label">${title}</p><div class="empty-state">Tidak ada penilaian yang menunggu direview saat ini.</div></div>`;
+    return;
+  }
+  list.innerHTML = `
+    <div class="card">
+      <p class="section-label">${title} (${queue.length})</p>
+      ${queue.map(a => {
+        const c = classify(a.total || 0);
+        return `
+        <div class="queue-item">
+          <div>
+            <div class="queue-item-name">${escapeHtml(a.partnerName || '(tanpa nama)')}</div>
+            <div class="queue-item-note">${escapeHtml(a.partnerType || '—')} · Skor ${a.total} · <span class="small-class-badge ${c.key}">${c.label}</span></div>
+          </div>
+          <button data-reviewid="${a.id}" class="ghost">Review</button>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  list.querySelectorAll('button[data-reviewid]').forEach(btn => {
+    btn.addEventListener('click', () => enterReviewMode(btn.dataset.reviewid));
+  });
+}
+
+function startRevision(id) {
+  const a = assessments.find(x => x.id === id);
+  if (!a) return;
+  revisingId = id;
+  document.getElementById('partnerName').value = a.partnerName || '';
+  document.getElementById('partnerType').value = a.partnerType || '';
+  if (a.assessDate) document.getElementById('assessDate').value = a.assessDate;
+  selects.forEach(s => {
+    const v = a.answers ? a.answers[s.dataset.varid] : undefined;
+    if (v !== undefined && v !== null) s.value = String(v);
+  });
+  renderScore();
+  document.getElementById('saveBtn').textContent = 'Kirim Ulang untuk Direview';
+  document.getElementById('saveMsg').textContent = `Merevisi penilaian ini. Catatan penolakan: ${a.revisionNote || '-'}`;
+  document.getElementById('saveMsg').className = 'save-msg err';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function enterReviewMode(id) {
+  const a = assessments.find(x => x.id === id);
+  if (!a) return;
+  reviewingId = id;
+
+  document.getElementById('formColInputs').style.display = '';
+  document.getElementById('queueList').style.display = 'none';
+
+  document.getElementById('partnerName').value = a.partnerName || '';
+  document.getElementById('partnerType').value = a.partnerType || '';
+  if (a.assessDate) document.getElementById('assessDate').value = a.assessDate;
+  document.getElementById('partnerName').disabled = true;
+  document.getElementById('partnerType').disabled = true;
+  document.getElementById('assessDate').disabled = true;
+  selects.forEach(s => {
+    const v = a.answers ? a.answers[s.dataset.varid] : undefined;
+    if (v !== undefined && v !== null) s.value = String(v);
+    s.disabled = true;
+  });
+  renderScore();
+
+  document.getElementById('saveBtn').style.display = 'none';
+  document.getElementById('resetBtn').textContent = 'Batal, Kembali ke Antrean';
+  document.getElementById('reviewActions').style.display = '';
+  document.getElementById('reviewNote').value = '';
+  document.getElementById('reviewApproveBtn').textContent = currentUserRole === 'checker' ? 'Setujui ke Approval' : 'Setujui (Final)';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function exitReviewMode() {
+  reviewingId = null;
+  document.getElementById('partnerName').disabled = false;
+  document.getElementById('partnerType').disabled = false;
+  document.getElementById('assessDate').disabled = false;
+  selects.forEach(s => { s.disabled = false; });
+  document.getElementById('partnerName').value = '';
+  document.getElementById('partnerType').value = '';
+  document.getElementById('assessDate').valueAsDate = new Date();
+  selects.forEach(s => s.selectedIndex = 0);
+  renderScore();
+
+  document.getElementById('formColInputs').style.display = 'none';
+  document.getElementById('queueList').style.display = '';
+  document.getElementById('reviewActions').style.display = 'none';
+  document.getElementById('saveBtn').style.display = '';
+  document.getElementById('resetBtn').textContent = 'Formulir baru';
+  renderQueues();
+}
+
+async function submitReviewDecision(approve) {
+  if (!reviewingId || !dbRef || !currentUser) return;
+  const note = document.getElementById('reviewNote').value.trim();
+  if (!approve && !note) {
+    alert('Isi catatan alasan penolakan terlebih dahulu.');
+    return;
+  }
+  const nowIso = new Date().toISOString();
+  let update = {};
+  if (currentUserRole === 'checker') {
+    update = approve
+      ? { status: 'pending_approval', checkerUid: currentUser.uid, checkerEmail: currentUser.email, checkerNote: note, checkedAt: nowIso }
+      : { status: 'revision', revisionNote: note, revisionFrom: 'checker', checkerUid: currentUser.uid, checkerEmail: currentUser.email, checkedAt: nowIso };
+  } else if (currentUserRole === 'approver') {
+    update = approve
+      ? { status: 'approved', approverUid: currentUser.uid, approverEmail: currentUser.email, approverNote: note, approvedAt: nowIso }
+      : { status: 'revision', revisionNote: note, revisionFrom: 'approver', approverUid: currentUser.uid, approverEmail: currentUser.email, approvedAt: nowIso };
+  } else {
+    return;
+  }
+  const approveBtn = document.getElementById('reviewApproveBtn');
+  const rejectBtn = document.getElementById('reviewRejectBtn');
+  approveBtn.disabled = true;
+  rejectBtn.disabled = true;
+  try {
+    await dbRef.doc(reviewingId).update(update);
+    exitReviewMode();
+  } catch (e) {
+    alert('Gagal menyimpan keputusan review. Coba lagi.');
+  } finally {
+    approveBtn.disabled = false;
+    rejectBtn.disabled = false;
+  }
+}
+document.getElementById('reviewApproveBtn').addEventListener('click', () => submitReviewDecision(true));
+document.getElementById('reviewRejectBtn').addEventListener('click', () => submitReviewDecision(false));
+
 function renderHistory() {
   const q = (document.getElementById('searchHistory').value || '').toLowerCase();
   const filtered = assessments.filter(a => (a.partnerName || '').toLowerCase().includes(q));
@@ -250,6 +449,7 @@ function renderHistory() {
   }
   const rows = filtered.map(a => {
     const c = classify(a.total || 0);
+    const st = STATUS_META[a.status] || { label: a.status || '—', badge: 'potential' };
     return `
       <tr>
         <td>${escapeHtml(a.partnerName || '(tanpa nama)')}</td>
@@ -257,10 +457,11 @@ function renderHistory() {
         <td>${escapeHtml(a.assessDate || '—')}</td>
         <td>${a.total}</td>
         <td><span class="small-class-badge ${c.key}">${c.label}</span></td>
+        <td><span class="small-class-badge ${st.badge}">${st.label}</span></td>
         <td class="row-actions">
           <button data-action="load" data-id="${a.id}">Muat</button>
           <button data-action="pdf" data-id="${a.id}">PDF</button>
-          <button data-action="delete" data-id="${a.id}" class="danger">Hapus</button>
+          ${currentUserRole === 'approver' ? `<button data-action="delete" data-id="${a.id}" class="danger">Hapus</button>` : ''}
         </td>
       </tr>
     `;
@@ -268,7 +469,7 @@ function renderHistory() {
   body.innerHTML = `
     <div class="table-scroll">
     <table>
-      <thead><tr><th>Partner</th><th>Jenis</th><th>Tanggal</th><th>Skor</th><th>Klasifikasi</th><th></th></tr></thead>
+      <thead><tr><th>Partner</th><th>Jenis</th><th>Tanggal</th><th>Skor</th><th>Klasifikasi</th><th>Status</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     </div>
@@ -321,6 +522,11 @@ document.getElementById('searchHistory').addEventListener('input', renderHistory
 // ---------- save ----------
 document.getElementById('saveBtn').addEventListener('click', async () => {
   const saveMsg = document.getElementById('saveMsg');
+  if (currentUserRole !== 'maker') {
+    saveMsg.textContent = 'Hanya akun berperan Maker yang dapat mengajukan penilaian.';
+    saveMsg.className = 'save-msg err';
+    return;
+  }
   const partnerName = document.getElementById('partnerName').value.trim();
   if (!partnerName) {
     saveMsg.textContent = 'Isi nama partner terlebih dahulu.';
@@ -344,13 +550,29 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     assessDate: document.getElementById('assessDate').value,
     answers: currentAnswers(),
     total,
-    createdAt: new Date().toISOString(),
   };
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
   try {
-    await dbRef.add(record);
-    saveMsg.textContent = 'Penilaian tersimpan.';
+    if (revisingId) {
+      await dbRef.doc(revisingId).update({
+        ...record,
+        status: 'pending_check',
+        revisedAt: new Date().toISOString(),
+      });
+      saveMsg.textContent = 'Revisi berhasil dikirim ulang, menunggu review Checker.';
+      revisingId = null;
+      btn.textContent = 'Ajukan untuk Direview';
+    } else {
+      await dbRef.add({
+        ...record,
+        status: 'pending_check',
+        makerUid: currentUser.uid,
+        makerEmail: currentUser.email,
+        createdAt: new Date().toISOString(),
+      });
+      saveMsg.textContent = 'Penilaian diajukan, menunggu review Checker.';
+    }
     saveMsg.className = 'save-msg ok';
   } catch (e) {
     saveMsg.textContent = 'Gagal menyimpan. Coba lagi.';

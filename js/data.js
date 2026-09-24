@@ -14,6 +14,22 @@ const FIREBASE_CONFIG = {
 };
 // ==========================================================
 
+// Status alur Maker → Checker → Approver untuk tiap penilaian partner.
+// Semua penilaian WAJIB melalui ketiga tahap ini, tanpa pengecualian.
+const STATUS_META = {
+  pending_check:    { label: 'Menunggu Checker',   badge: 'warn' },
+  pending_approval: { label: 'Menunggu Approval',  badge: 'info' },
+  approved:         { label: 'Disetujui',          badge: 'strong' },
+  revision:         { label: 'Perlu Revisi',       badge: 'bad' },
+};
+
+// Label tampilan untuk tiap peran pengguna.
+const ROLE_META = {
+  maker:    { label: 'Maker' },
+  checker:  { label: 'Checker' },
+  approver: { label: 'Approver' },
+};
+
 const PILLARS = [
   { key: 'industri', title: 'Industri', vars: [
     { id: 'industri', label: 'Kategori industri partner', weight: 30, bobot: 100, options: [
