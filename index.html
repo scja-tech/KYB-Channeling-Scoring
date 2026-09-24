@@ -63,6 +63,7 @@
       </button>
       <div class="user-row">
         <span class="user-email" id="userEmailLabel"></span>
+        <span class="role-badge" id="userRoleLabel"></span>
         <button class="logout-btn" id="logoutBtn" type="button">Keluar</button>
       </div>
       <span class="tag">Internal only · tidak dibagikan ke partner</span>
@@ -73,25 +74,31 @@
 
     <div class="form-col">
 
-      <div class="card partner-card">
-        <p class="section-label">Data Partner</p>
-        <div class="row">
-          <div class="field">
-            <label for="partnerName">Nama Partner / Perusahaan</label>
-            <input type="text" id="partnerName" placeholder="Contoh: PT Bank Digital Nusantara">
-          </div>
-          <div class="field">
-            <label for="partnerType">Jenis Channel</label>
-            <input type="text" id="partnerType" placeholder="Bank / Fintech / E-Commerce / Merchant">
-          </div>
-          <div class="field">
-            <label for="assessDate">Tanggal Penilaian</label>
-            <input type="date" id="assessDate">
+      <div id="makerRevisionBanner" style="display:none;"></div>
+
+      <div id="formColInputs">
+        <div class="card partner-card">
+          <p class="section-label">Data Partner</p>
+          <div class="row">
+            <div class="field">
+              <label for="partnerName">Nama Partner / Perusahaan</label>
+              <input type="text" id="partnerName" placeholder="Contoh: PT Bank Digital Nusantara">
+            </div>
+            <div class="field">
+              <label for="partnerType">Jenis Channel</label>
+              <input type="text" id="partnerType" placeholder="Bank / Fintech / E-Commerce / Merchant">
+            </div>
+            <div class="field">
+              <label for="assessDate">Tanggal Penilaian</label>
+              <input type="date" id="assessDate">
+            </div>
           </div>
         </div>
+
+        <div id="pillars"></div>
       </div>
 
-      <div id="pillars"></div>
+      <div id="queueList" style="display:none;"></div>
 
     </div>
 
@@ -117,7 +124,16 @@
 
         <div id="breakdown"></div>
 
-        <button class="primary" id="saveBtn">Simpan penilaian</button>
+        <div id="reviewActions" style="display:none;">
+          <div class="field">
+            <label for="reviewNote">Catatan Review</label>
+            <textarea id="reviewNote" rows="3" placeholder="Wajib diisi jika menolak/mengembalikan ke Maker"></textarea>
+          </div>
+          <button class="primary" id="reviewApproveBtn" type="button">Setujui</button>
+          <button class="ghost reject" id="reviewRejectBtn" type="button">Kembalikan ke Maker</button>
+        </div>
+
+        <button class="primary" id="saveBtn">Ajukan untuk Direview</button>
         <button class="ghost" id="exportBtn">Unduh laporan (PDF)</button>
         <button class="ghost" id="resetBtn">Formulir baru</button>
         <div class="save-msg" id="saveMsg"></div>
